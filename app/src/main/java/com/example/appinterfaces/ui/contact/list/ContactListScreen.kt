@@ -1,7 +1,6 @@
-package com.example.appinterfaces.ui.contact
+package com.example.appinterfaces.ui.contact.list
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,8 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CloudOff
@@ -34,11 +31,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,66 +38,29 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.appinterfaces.R
 import com.example.appinterfaces.data.Contact
 import com.example.appinterfaces.ui.theme.AppInterfacesTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 @Composable
 fun ContactListScreen(
     modifier: Modifier = Modifier,
-    coroutineScope: CoroutineScope = rememberCoroutineScope()
+    viewModel: ContactsListViewModel = viewModel()
 ) {
-
-    val isInitialCompositionState: MutableState<Boolean> = rememberSaveable {
-        mutableStateOf(true)
-    }
-    val isLoadingState: MutableState<Boolean> = rememberSaveable {
-        mutableStateOf(false)
-    }
-    val isErrorState: MutableState<Boolean> = rememberSaveable {
-        mutableStateOf(false)
-    }
-
-    val contactsState: MutableState<List<Contact>> = rememberSaveable {
-        mutableStateOf(emptyList())
-    }
-
-    val loadContacts: () -> Unit = {
-        isLoadingState.value = true
-        isErrorState.value = false
-        coroutineScope.launch {
-            delay(2000)
-            isErrorState.value = Random.nextBoolean()
-            if(!isErrorState.value) {
-                val isEmpty = Random.nextBoolean()
-                if(isEmpty) {
-                    contactsState.value = emptyList()
-                } else {
-                    contactsState.value = generateContacts()
-                }
-            }
-            isLoadingState.value = false
-        }
-    }
-
     val contentModifier = modifier.fillMaxSize()
 
-    if(isLoadingState.value) {
+    if(viewModel.uiState.value.isLoading) {
         LoadingState(contentModifier)
-    } else if(isErrorState.value) {
-        ErrorState(contentModifier, onTryAgainPressed = loadContacts)
+    } else if(viewModel.uiState.value.isError) {
+        ErrorState(contentModifier, onTryAgainPressed = viewModel::loadContacts)
     } else {
         Scaffold(
             floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = {
-                        contactsState.value = contactsState.value.plus(
-                            Contact(firstName = "Teste", lastName = "Teste")
-                        )
+                        // TODO: Ir para a tela de adicionar contato
                     }
                 ){
                     Icon(
@@ -121,16 +76,17 @@ fun ContactListScreen(
             modifier = modifier.fillMaxSize(),
             topBar = { AppBar(
                 onRefreshPressed =
-                    loadContacts
+                    viewModel::loadContacts
             ) }
         ) { paddingValues ->
             val defaultModifier: Modifier = Modifier.padding(paddingValues)
-            if (contactsState.value.isEmpty()) {
+            if (viewModel.uiState.value.contact.isEmpty()) {
                 EmptyState(defaultModifier)
             } else {
                 List(
                     modifier = defaultModifier,
-                    contacts = contactsState.value
+                    contacts = viewModel.uiState.value.contact,
+                    onFavoritePressed = viewModel::toggleIsFavorite
                 )
             }
         }
@@ -293,13 +249,17 @@ fun EmptyStatePreview(modifier: Modifier = Modifier) {
 @Composable
 fun List(
     modifier: Modifier = Modifier,
-         contacts: List<Contact> = emptyList()
+    contacts: List<Contact> = emptyList(),
+    onFavoritePressed: (Contact) -> Unit
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize()
     ) {
         items(contacts) { contact ->
-            ContactListItem(contact = contact)
+            ContactListItem(
+                contact = contact,
+                onFavoritePressed = onFavoritePressed
+            )
         }
     }
 }
@@ -309,16 +269,18 @@ fun List(
 fun ListPreview(modifier: Modifier = Modifier) {
     AppInterfacesTheme{
         List(
-            contacts = generateContacts()
+            contacts = generateContacts(),
+            onFavoritePressed = {}
         )
     }
 }
 
 @Composable
-fun ContactListItem(modifier: Modifier = Modifier, contact: Contact) {
-    val isFavoriteState: MutableState<Boolean> = rememberSaveable {
-        mutableStateOf(contact.isFavorite)
-    }
+fun ContactListItem(
+    modifier: Modifier = Modifier,
+    contact: Contact,
+    onFavoritePressed: (Contact) -> Unit = {}
+) {
     ListItem(
         modifier = modifier,
         headlineContent = {
@@ -327,17 +289,16 @@ fun ContactListItem(modifier: Modifier = Modifier, contact: Contact) {
         trailingContent = {
             IconButton(
                 onClick = {
-                    isFavoriteState.value = !isFavoriteState.value
-                }
+                    onFavoritePressed(contact)                }
             ) {
                 Icon(
                     contentDescription = "Favoritar",
-                    imageVector = if(isFavoriteState.value) {
+                    imageVector = if(contact.isFavorite) {
                         Icons.Filled.Favorite
                     } else {
                         Icons.Filled.FavoriteBorder
                     },
-                    tint = if (isFavoriteState.value) {
+                    tint = if (contact.isFavorite) {
                         Color.Red
                     } else {
                         LocalContentColor.current
@@ -348,7 +309,7 @@ fun ContactListItem(modifier: Modifier = Modifier, contact: Contact) {
     )
 }
 
-private fun generateContacts(): List<Contact> {
+fun generateContacts(): List<Contact> {
     val firstNames = listOf(
         "João", "José", "Everton", "Marcos", "André", "Anderson", "Antônio",
         "Laura", "Ana", "Maria", "Joaquina", "Suelen"
