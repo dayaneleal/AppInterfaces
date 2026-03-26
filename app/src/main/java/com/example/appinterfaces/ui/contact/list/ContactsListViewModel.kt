@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.appinterfaces.data.Contact
+import com.example.appinterfaces.data.groupByInitial
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -35,12 +36,12 @@ class ContactsListViewModel : ViewModel() {
                 val isEmpty = Random.nextBoolean()
                 if(isEmpty) {
                     uiState.value.copy(
-                        contact = listOf(),
+                        contact = emptyMap(),
                         isLoading = false,
                     )
                 } else {
                     uiState.value.copy(
-                        contact = generateContacts(),
+                        contact = generateContacts().groupByInitial(),
                         isLoading = false,
                     )
                 }
@@ -49,14 +50,19 @@ class ContactsListViewModel : ViewModel() {
     }
 
     fun toggleIsFavorite(updatedContact: Contact){
-        uiState.value = uiState.value.copy(
-            contact = uiState.value.contact.map { currentContact ->
+        val newMap: MutableMap<String, List<Contact>> = mutableMapOf()
+        uiState.value.contact.keys.forEach { key ->
+            newMap[key] = uiState.value.contact[key]!!.map {
+                    currentContact ->
                 if(currentContact.id == updatedContact.id) {
                     currentContact.copy(isFavorite = !currentContact.isFavorite)
                 } else {
                     currentContact
                 }
             }
+        }
+        uiState.value = uiState.value.copy(
+            contact = newMap
         )
     }
 }

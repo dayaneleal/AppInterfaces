@@ -5,5 +5,5 @@ import com.example.appinterfaces.data.Contact
 data class ContactsListUiState(
     val isLoading: Boolean = false,
     val isError: Boolean = false,
-    val contact: List<Contact> = emptyList()
+    val contact: Map<String, List<Contact>> = emptyMap()
 )

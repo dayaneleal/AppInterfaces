@@ -1,9 +1,10 @@
 package com.example.appinterfaces.ui.contact.list
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,12 +14,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -41,6 +39,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.appinterfaces.R
 import com.example.appinterfaces.data.Contact
+import com.example.appinterfaces.data.groupByInitial
+import com.example.appinterfaces.ui.shared.composables.ComposableAvatar
+import com.example.appinterfaces.ui.shared.composables.DefaultErrorState
+import com.example.appinterfaces.ui.shared.composables.DefaultLoadingState
+import com.example.appinterfaces.ui.shared.composables.FavoriteIconButton
 import com.example.appinterfaces.ui.theme.AppInterfacesTheme
 import kotlin.random.Random
 
@@ -52,9 +55,9 @@ fun ContactListScreen(
     val contentModifier = modifier.fillMaxSize()
 
     if(viewModel.uiState.value.isLoading) {
-        LoadingState(contentModifier)
+        DefaultLoadingState(contentModifier, "Carregando contatos...")
     } else if(viewModel.uiState.value.isError) {
-        ErrorState(contentModifier, onTryAgainPressed = viewModel::loadContacts)
+        DefaultErrorState(contentModifier, onTryAgainPressed = viewModel::loadContacts)
     } else {
         Scaffold(
             floatingActionButton = {
@@ -130,85 +133,6 @@ fun AppBarPreview(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun LoadingState(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        CircularProgressIndicator(
-            color= MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.size(48.dp)
-        )
-        Spacer(modifier = Modifier.size(16.dp))
-        Text(
-            text = "Carregando contatos...",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun LoadingStatePreview(modifier: Modifier = Modifier) {
-    AppInterfacesTheme{
-        LoadingState()
-    }
-}
-
-@Composable
-fun ErrorState(
-    modifier: Modifier = Modifier,
-    onTryAgainPressed: () -> Unit
-) {
-    Column(
-        modifier = modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Filled.CloudOff,
-            contentDescription = "Erro ao carregar",
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(64.dp)
-        )
-
-        val horizontalPadding = PaddingValues( start = 8.dp, end  = 8.dp)
-        Text(
-            modifier = Modifier
-                .padding(horizontalPadding)
-                .padding(top = 16.dp),
-            text = "Ocorreu um erro ao carregar",
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.titleLarge,
-        )
-        Text(
-            modifier = Modifier
-                .padding(horizontalPadding)
-                .padding(top = 8.dp),
-            text = "Aguarda um momento e tente novamente",
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        ElevatedButton(
-            modifier = Modifier.padding(top = 16.dp),
-            onClick = onTryAgainPressed) {
-            Text(text = "Tentar novamente")
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ErrorStatePreview(modifier: Modifier = Modifier) {
-    AppInterfacesTheme{
-        ErrorState(onTryAgainPressed = {})
-    }
-}
-
-@Composable
 fun EmptyState(modifier: Modifier = Modifier) {
     Column(
         modifier = Modifier
@@ -249,17 +173,30 @@ fun EmptyStatePreview(modifier: Modifier = Modifier) {
 @Composable
 fun List(
     modifier: Modifier = Modifier,
-    contacts: List<Contact> = emptyList(),
+    contacts: Map<String, List<Contact>> = emptyMap(),
     onFavoritePressed: (Contact) -> Unit
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize()
     ) {
-        items(contacts) { contact ->
-            ContactListItem(
-                contact = contact,
-                onFavoritePressed = onFavoritePressed
-            )
+        contacts.forEach { (key, contacts) ->
+            stickyHeader {
+                Box(modifier = Modifier.fillMaxWidth().background(color = MaterialTheme.colorScheme.secondaryContainer))
+                {
+                    Text(
+                        text = key,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp, start = 16.dp),
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
+
+            items(contacts) { contact ->
+                ContactListItem(
+                    contact = contact,
+                    onFavoritePressed = onFavoritePressed
+                )
+            }
         }
     }
 }
@@ -269,7 +206,7 @@ fun List(
 fun ListPreview(modifier: Modifier = Modifier) {
     AppInterfacesTheme{
         List(
-            contacts = generateContacts(),
+            contacts = generateContacts().groupByInitial(),
             onFavoritePressed = {}
         )
     }
@@ -286,25 +223,19 @@ fun ContactListItem(
         headlineContent = {
             Text(contact.fullName)
         },
+        leadingContent = {
+            ComposableAvatar(
+                firstName = contact.firstName,
+                lastName = contact.lastName
+            )
+        },
         trailingContent = {
-            IconButton(
-                onClick = {
-                    onFavoritePressed(contact)                }
-            ) {
-                Icon(
-                    contentDescription = "Favoritar",
-                    imageVector = if(contact.isFavorite) {
-                        Icons.Filled.Favorite
-                    } else {
-                        Icons.Filled.FavoriteBorder
-                    },
-                    tint = if (contact.isFavorite) {
-                        Color.Red
-                    } else {
-                        LocalContentColor.current
-                    }
-                )
-            }
+            FavoriteIconButton(
+                isFavorite = contact.isFavorite,
+                onClick =  {
+                    onFavoritePressed(contact)
+                }
+            )
         }
     )
 }
