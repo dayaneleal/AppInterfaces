@@ -40,6 +40,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.appinterfaces.R
 import com.example.appinterfaces.data.Contact
 import com.example.appinterfaces.data.groupByInitial
+import com.example.appinterfaces.data.utils.generateContacts
 import com.example.appinterfaces.ui.shared.composables.ComposableAvatar
 import com.example.appinterfaces.ui.shared.composables.DefaultErrorState
 import com.example.appinterfaces.ui.shared.composables.DefaultLoadingState
@@ -238,33 +239,4 @@ fun ContactListItem(
             )
         }
     )
-}
-
-fun generateContacts(): List<Contact> {
-    val firstNames = listOf(
-        "João", "José", "Everton", "Marcos", "André", "Anderson", "Antônio",
-        "Laura", "Ana", "Maria", "Joaquina", "Suelen"
-    )
-    val lastNames = listOf(
-        "Do Carmo", "Oliveira", "Dos Santos", "Da Silva", "Brasil", "Pichetti",
-        "Cordeiro", "Silveira", "Andrades", "Cardoso"
-    )
-    val contacts: MutableList<Contact> = mutableListOf()
-    for (i in 0..29) {
-        var generatedNewContact = false
-        while (!generatedNewContact) {
-            val firstNameIndex = Random.nextInt(firstNames.size)
-            val lastNameIndex = Random.nextInt(lastNames.size)
-            val newContact = Contact(
-                id = i + 1,
-                firstName = firstNames[firstNameIndex],
-                lastName = lastNames[lastNameIndex]
-            )
-            if (!contacts.any { it.fullName == newContact.fullName }) {
-                contacts.add(newContact)
-                generatedNewContact = true
-            }
-        }
-    }
-    return contacts
 }
