@@ -4,14 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.appinterfaces.ui.contact.list.ContactListScreen
+import com.example.appinterfaces.ui.AppContactNavHost
 import com.example.appinterfaces.ui.theme.AppInterfacesTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,11 +17,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AppInterfacesTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    ContactListScreen(
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                AppContactNavHost()
             }
         }
     }

@@ -42,8 +42,9 @@ fun ComposableAvatar(
         modifier = modifier.size(size),
         contentAlignment = Alignment.Center
     ) {
-        val initials = firstName.first().toString() + lastName.first()
-        val color = Color(initials.toHslColor())
+        val name = "$firstName $lastName".trim()
+        val color = Color(name.toHslColor())
+        val initials = (firstName.take(1) + lastName.take(1)).uppercase()
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(SolidColor(color))
         }

@@ -2,6 +2,7 @@ package com.example.appinterfaces.ui.contact.list
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,21 +52,21 @@ import kotlin.random.Random
 @Composable
 fun ContactListScreen(
     modifier: Modifier = Modifier,
-    viewModel: ContactsListViewModel = viewModel()
+    viewModel: ContactsListViewModel = viewModel(),
+    onAddPressed: () -> Unit,
+    onContactPressed: (Contact) -> Unit
 ) {
     val contentModifier = modifier.fillMaxSize()
 
-    if(viewModel.uiState.value.isLoading) {
+    if(viewModel.uiState.isLoading) {
         DefaultLoadingState(contentModifier, "Carregando contatos...")
-    } else if(viewModel.uiState.value.isError) {
+    } else if(viewModel.uiState.isError) {
         DefaultErrorState(contentModifier, onTryAgainPressed = viewModel::loadContacts)
     } else {
         Scaffold(
             floatingActionButton = {
                 ExtendedFloatingActionButton(
-                    onClick = {
-                        // TODO: Ir para a tela de adicionar contato
-                    }
+                    onClick = onAddPressed
                 ){
                     Icon(
                         imageVector = Icons.Filled.Add,
@@ -84,13 +85,14 @@ fun ContactListScreen(
             ) }
         ) { paddingValues ->
             val defaultModifier: Modifier = Modifier.padding(paddingValues)
-            if (viewModel.uiState.value.contact.isEmpty()) {
+            if (viewModel.uiState.contact.isEmpty()) {
                 EmptyState(defaultModifier)
             } else {
                 List(
                     modifier = defaultModifier,
-                    contacts = viewModel.uiState.value.contact,
-                    onFavoritePressed = viewModel::toggleIsFavorite
+                    contacts = viewModel.uiState.contact,
+                    onFavoritePressed = viewModel::toggleIsFavorite,
+                    onContactPressed = onContactPressed
                 )
             }
         }
@@ -175,7 +177,8 @@ fun EmptyStatePreview(modifier: Modifier = Modifier) {
 fun List(
     modifier: Modifier = Modifier,
     contacts: Map<String, List<Contact>> = emptyMap(),
-    onFavoritePressed: (Contact) -> Unit
+    onFavoritePressed: (Contact) -> Unit,
+    onContactPressed: (Contact) -> Unit
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize()
@@ -195,7 +198,8 @@ fun List(
             items(contacts) { contact ->
                 ContactListItem(
                     contact = contact,
-                    onFavoritePressed = onFavoritePressed
+                    onFavoritePressed = onFavoritePressed,
+                    onContactPressed = onContactPressed
                 )
             }
         }
@@ -208,7 +212,8 @@ fun ListPreview(modifier: Modifier = Modifier) {
     AppInterfacesTheme{
         List(
             contacts = generateContacts().groupByInitial(),
-            onFavoritePressed = {}
+            onFavoritePressed = {},
+            onContactPressed = {}
         )
     }
 }
@@ -217,10 +222,11 @@ fun ListPreview(modifier: Modifier = Modifier) {
 fun ContactListItem(
     modifier: Modifier = Modifier,
     contact: Contact,
-    onFavoritePressed: (Contact) -> Unit = {}
+    onFavoritePressed: (Contact) -> Unit = {},
+    onContactPressed: (Contact) -> Unit
 ) {
     ListItem(
-        modifier = modifier,
+        modifier = modifier.clickable { onContactPressed(contact) },
         headlineContent = {
             Text(contact.fullName)
         },
